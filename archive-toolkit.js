@@ -30,7 +30,6 @@
     const wrapper = document.createElement("div");
     wrapper.className = "bearming-archive";
     sourceList.parentNode.insertBefore(wrapper, sourceList);
-    wrapper.appendChild(sourceList);
 
     const groups = {};
     const years = {};
@@ -47,26 +46,17 @@
 
       const year = String(date.getFullYear());
       const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = date.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
+      const label = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
       li.dataset.archiveYear = year;
-      li.dataset.archiveMonth = monthKey;
 
       years[year] = (years[year] || 0) + 1;
 
-      if (!groups[monthKey]) {
-        groups[monthKey] = { label, date, items: [] };
-      }
-
+      if (!groups[monthKey]) groups[monthKey] = { label, date, items: [] };
       groups[monthKey].items.push(li);
     });
 
-    const sortedMonths = Object.keys(groups).sort(
-      (a, b) => groups[b].date - groups[a].date
-    );
+    const sortedMonths = Object.keys(groups).sort((a, b) => groups[b].date - groups[a].date);
 
     sourceList.remove();
 
@@ -129,7 +119,7 @@
     const pagination = document.createElement("div");
     pagination.className = "pagination";
     pagination.innerHTML =
-      '<a id="prev">Previous</a><span id="info"></span><a id="next">Next</a>';
+      '<a id="prev" role="button">Previous</a><span id="info"></span><a id="next" role="button">Next</a>';
 
     wrapper.appendChild(pagination);
 
@@ -152,7 +142,10 @@
       const filtered = allItems.filter((li) => {
         if (year && li.dataset.archiveYear !== year) return false;
         if (!term) return true;
-        return li.textContent.toLowerCase().includes(term);
+
+        const a = li.querySelector("a");
+        const text = (a ? a.textContent : li.textContent).toLowerCase();
+        return text.includes(term);
       });
 
       totalPages = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
@@ -166,9 +159,7 @@
       });
 
       monthLists.forEach((ul, i) => {
-        const visible = Array.from(ul.children).some(
-          (li) => li.style.display !== "none"
-        );
+        const visible = Array.from(ul.children).some((li) => li.style.display !== "none");
         ul.style.display = visible ? "" : "none";
         monthHeaders[i].style.display = visible ? "" : "none";
       });
