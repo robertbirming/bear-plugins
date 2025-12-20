@@ -1,313 +1,207 @@
-/**
- * Bear Blog Archive Toolkit (Month grouping + Year filter + Search + Pagination)
- * Designed for /blog/ (body.blog) and scoped to <main> to avoid interfering elsewhere.
- */
+// Bearming Archive Toolkit
+// Runs on pages using `class_name: blog` or when the Blog path is set to `blog`.
+
 (function () {
   "use strict";
 
   const POSTS_PER_PAGE = 20;
 
-  function onReady(fn) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", fn, { once: true });
-    } else {
-      fn();
-    }
+  function ready(fn) {
+    document.readyState === "loading"
+      ? document.addEventListener("DOMContentLoaded", fn, { once: true })
+      : fn();
   }
 
-  function qs(scope, sel) {
-    return scope.querySelector(sel);
-  }
+  ready(function () {
+    if (!document.body.classList.contains("blog")) return;
 
-  function qsa(scope, sel) {
-    return Array.from(scope.querySelectorAll(sel));
-  }
+    const main = document.querySelector("main");
+    if (!main) return;
 
-  function isBlogIndex() {
-    return document.body.classList.contains("blog");
-  }
+    const sourceList =
+      main.querySelector("ul.embedded.blog-posts") ||
+      main.querySelector("ul.blog-posts");
 
-  function findMainPostsList(main) {
-    return qs(main, "ul.embedded.blog-posts") || qs(main, "ul.blog-posts");
-  }
+    if (!sourceList) return;
 
-  function parsePostDate(li) {
-    const t = li.querySelector("time[datetime]");
-    if (!t) return null;
-    const dt = t.getAttribute("datetime");
-    if (!dt) return null;
-    const d = new Date(dt);
-    if (Number.isNaN(d.getTime())) return null;
-    return { date: d, iso: dt };
-  }
+    const items = Array.from(sourceList.querySelectorAll("li"));
+    if (!items.length) return;
 
-  function monthKey(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    return `${y}-${m}`;
-  }
+    const wrapper = document.createElement("div");
+    wrapper.className = "bearming-archive";
+    sourceList.parentNode.insertBefore(wrapper, sourceList);
+    wrapper.appendChild(sourceList);
 
-  function monthLabel(d) {
-    return d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  }
+    const groups = {};
+    const years = {};
 
-  function buildArchiveHeader(wrapper, totalPosts, lastUpdated) {
-    let header = qs(wrapper, "h2.archive");
-    if (!header) {
-      header = document.createElement("h2");
-      header.className = "archive";
-      wrapper.prepend(header);
-    }
+    items.forEach((li) => {
+      const time = li.querySelector("time[datetime]");
+      if (!time) return;
 
-    const formatted = lastUpdated.date.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
+      const dt = time.getAttribute("datetime");
+      if (!dt) return;
 
-    const span = document.createElement("span");
-    span.id = "last-updated";
-    span.setAttribute("data-date", lastUpdated.iso);
-    span.textContent = formatted;
+      const date = new Date(dt);
+      if (isNaN(date.getTime())) return;
 
-    header.textContent = `${totalPosts} entries. Last updated on `;
-    header.appendChild(span);
-    header.appendChild(document.createTextNode("."));
-  }
+      const year = String(date.getFullYear());
+      const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const label = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
 
-  function groupPostsByMonthIntoWrapper(wrapper, postsList) {
-    const items = qsa(postsList, "li");
-    if (!items.length) return { monthLists: [], monthHeaders: [], allItems: [] };
+      li.dataset.archiveYear = year;
+      li.dataset.archiveMonth = monthKey;
 
-    let lastUpdated = null;
+      years[year] = (years[year] || 0) + 1;
 
-    const groups = new Map();
-    const monthSortDate = new Map();
-
-    for (const li of items) {
-      const info = parsePostDate(li);
-      if (!info) continue;
-
-      if (!lastUpdated || info.date > lastUpdated.date) lastUpdated = info;
-
-      const key = monthKey(info.date);
-
-      if (!groups.has(key)) {
-        groups.set(key, { label: monthLabel(info.date), items: [] });
-        monthSortDate.set(key, info.date);
+      if (!groups[monthKey]) {
+        groups[monthKey] = { label, date, items: [] };
       }
 
-      groups.get(key).items.push(li);
-
-      const cur = monthSortDate.get(key);
-      if (!cur || info.date > cur) monthSortDate.set(key, info.date);
-    }
-
-    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
-      const da = monthSortDate.get(a) || new Date(0);
-      const db = monthSortDate.get(b) || new Date(0);
-      return db - da;
+      groups[monthKey].items.push(li);
     });
 
-    if (lastUpdated) buildArchiveHeader(wrapper, items.length, lastUpdated);
+    const sortedMonths = Object.keys(groups).sort(
+      (a, b) => groups[b].date - groups[a].date
+    );
 
-    postsList.innerHTML = "";
+    sourceList.remove();
 
-    const monthHeaders = [];
     const monthLists = [];
+    const monthHeaders = [];
     const allItems = [];
 
-    for (const key of sortedKeys) {
-      const group = groups.get(key);
-
+    sortedMonths.forEach((key) => {
       const h3 = document.createElement("h3");
       h3.className = "archive-h3";
-      h3.textContent = group.label;
+      h3.textContent = groups[key].label;
 
       const ul = document.createElement("ul");
       ul.className = "blog-posts";
-      ul.setAttribute("data-archive-month", key);
 
-      for (const li of group.items) {
-        const info = parsePostDate(li);
-        if (info) {
-          li.dataset.archiveYear = String(info.date.getFullYear());
-          li.dataset.archiveMonth = monthKey(info.date);
-        }
+      groups[key].items.forEach((li) => {
         ul.appendChild(li);
         allItems.push(li);
-      }
+      });
 
       wrapper.appendChild(h3);
       wrapper.appendChild(ul);
 
       monthHeaders.push(h3);
       monthLists.push(ul);
-    }
+    });
 
-    postsList.remove();
-
-    return { monthLists, monthHeaders, allItems };
-  }
-
-  function buildControls(wrapper, years) {
     const controls = document.createElement("div");
     controls.className = "archive-controls";
+    controls.style.display = "flex";
+    controls.style.gap = "0.75rem";
+    controls.style.marginBlock = "1rem 1.25rem";
 
     const yearSelect = document.createElement("select");
-    yearSelect.id = "archiveYear";
-    yearSelect.setAttribute("aria-label", "Filter by year");
+    const totalPosts = allItems.length;
 
-    const optAll = document.createElement("option");
-    optAll.value = "";
-    optAll.textContent = "All years";
-    yearSelect.appendChild(optAll);
+    const allOpt = document.createElement("option");
+    allOpt.value = "";
+    allOpt.textContent = `All posts (${totalPosts})`;
+    yearSelect.appendChild(allOpt);
 
-    years.forEach((y) => {
-      const opt = document.createElement("option");
-      opt.value = y;
-      opt.textContent = y;
-      yearSelect.appendChild(opt);
-    });
+    Object.keys(years)
+      .sort((a, b) => Number(b) - Number(a))
+      .forEach((year) => {
+        const opt = document.createElement("option");
+        opt.value = year;
+        opt.textContent = `${year} (${years[year]})`;
+        yearSelect.appendChild(opt);
+      });
 
     const searchInput = document.createElement("input");
     searchInput.type = "search";
-    searchInput.id = "archiveSearch";
-    searchInput.placeholder = "Search...";
-    searchInput.setAttribute("aria-label", "Search posts");
+    searchInput.placeholder = "Search…";
+    searchInput.style.flex = "1";
 
     controls.appendChild(yearSelect);
     controls.appendChild(searchInput);
+    wrapper.prepend(controls);
 
-    const header = qs(wrapper, "h2.archive");
-    if (header && header.nextSibling) {
-      header.insertAdjacentElement("afterend", controls);
-    } else {
-      wrapper.prepend(controls);
+    const pagination = document.createElement("div");
+    pagination.className = "pagination";
+    pagination.innerHTML =
+      '<a id="prev">Previous</a><span id="info"></span><a id="next">Next</a>';
+
+    wrapper.appendChild(pagination);
+
+    const prev = pagination.querySelector("#prev");
+    const next = pagination.querySelector("#next");
+    const info = pagination.querySelector("#info");
+
+    let currentPage = 1;
+    let totalPages = 1;
+
+    function setDisabled(el, disabled) {
+      el.style.opacity = disabled ? "0.5" : "1";
+      el.style.pointerEvents = disabled ? "none" : "";
     }
 
-    return { yearSelect, searchInput };
-  }
+    function update() {
+      const year = yearSelect.value;
+      const term = searchInput.value.trim().toLowerCase();
 
-  function buildPagination(wrapper) {
-    const nav = document.createElement("div");
-    nav.className = "pagination bearming-archive-pagination";
-    nav.innerHTML =
-      '<a id="archivePrev" role="button">Previous</a>' +
-      '<span id="archivePageInfo"></span>' +
-      '<a id="archiveNext" role="button">Next</a>';
+      const filtered = allItems.filter((li) => {
+        if (year && li.dataset.archiveYear !== year) return false;
+        if (!term) return true;
+        return li.textContent.toLowerCase().includes(term);
+      });
 
-    wrapper.appendChild(nav);
+      totalPages = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
+      currentPage = Math.min(currentPage, totalPages);
 
-    const prev = qs(nav, "#archivePrev");
-    const next = qs(nav, "#archiveNext");
-    const info = qs(nav, "#archivePageInfo");
+      const start = (currentPage - 1) * POSTS_PER_PAGE;
+      const pageSet = new Set(filtered.slice(start, start + POSTS_PER_PAGE));
 
-    function setDisabled(a, disabled) {
-      a.dataset.disabled = disabled ? "true" : "false";
+      allItems.forEach((li) => {
+        li.style.display = pageSet.has(li) ? "" : "none";
+      });
+
+      monthLists.forEach((ul, i) => {
+        const visible = Array.from(ul.children).some(
+          (li) => li.style.display !== "none"
+        );
+        ul.style.display = visible ? "" : "none";
+        monthHeaders[i].style.display = visible ? "" : "none";
+      });
+
+      info.textContent = `Page ${currentPage} of ${totalPages}`;
+      setDisabled(prev, currentPage === 1);
+      setDisabled(next, currentPage === totalPages);
     }
 
-    return { prev, next, info, setDisabled };
-  }
-
-  function updateMonthVisibility(monthHeaders, monthLists) {
-    for (let i = 0; i < monthLists.length; i++) {
-      const ul = monthLists[i];
-      const h3 = monthHeaders[i];
-      const anyVisible = qsa(ul, "li").some((li) => li.style.display !== "none");
-      h3.style.display = anyVisible ? "" : "none";
-      ul.style.display = anyVisible ? "" : "none";
-    }
-  }
-
-  function applyState(state) {
-    const term = (state.searchInput.value || "").trim().toLowerCase();
-    const year = state.yearSelect.value || "";
-
-    const eligible = state.allItems.filter((li) => {
-      const y = li.dataset.archiveYear || "";
-      if (year && y !== year) return false;
-
-      if (!term) return true;
-
-      const a = li.querySelector("a");
-      const text = (a ? a.textContent : li.textContent).toLowerCase();
-      return text.includes(term);
+    yearSelect.addEventListener("change", () => {
+      currentPage = 1;
+      update();
     });
 
-    const totalPages = Math.max(1, Math.ceil(eligible.length / POSTS_PER_PAGE));
-    state.currentPage = Math.min(state.currentPage, totalPages);
-
-    const start = (state.currentPage - 1) * POSTS_PER_PAGE;
-    const end = start + POSTS_PER_PAGE;
-    const pageSet = new Set(eligible.slice(start, end));
-
-    for (const li of state.allItems) {
-      li.style.display = pageSet.has(li) ? "" : "none";
-    }
-
-    updateMonthVisibility(state.monthHeaders, state.monthLists);
-
-    state.pagination.info.textContent = `Page ${state.currentPage} of ${totalPages}`;
-    state.pagination.setDisabled(state.pagination.prev, state.currentPage === 1);
-    state.pagination.setDisabled(state.pagination.next, state.currentPage === totalPages);
-  }
-
-  onReady(function () {
-    if (!isBlogIndex()) return;
-
-    const main = document.querySelector("main");
-    if (!main) return;
-
-    const postsList = findMainPostsList(main);
-    if (!postsList) return;
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "bearming-archive";
-    postsList.parentNode.insertBefore(wrapper, postsList);
-    wrapper.appendChild(postsList);
-
-    const grouped = groupPostsByMonthIntoWrapper(wrapper, postsList);
-    if (!grouped.allItems.length) return;
-
-    const years = Array.from(
-      new Set(grouped.allItems.map((li) => li.dataset.archiveYear).filter(Boolean))
-    ).sort((a, b) => Number(b) - Number(a));
-
-    const { yearSelect, searchInput } = buildControls(wrapper, years);
-    const pagination = buildPagination(wrapper);
-
-    const state = {
-      allItems: grouped.allItems,
-      monthHeaders: grouped.monthHeaders,
-      monthLists: grouped.monthLists,
-      yearSelect,
-      searchInput,
-      pagination,
-      currentPage: 1,
-    };
-
-    yearSelect.addEventListener("change", function () {
-      state.currentPage = 1;
-      applyState(state);
+    searchInput.addEventListener("input", () => {
+      currentPage = 1;
+      update();
     });
 
-    searchInput.addEventListener("input", function () {
-      state.currentPage = 1;
-      applyState(state);
+    prev.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage -= 1;
+        update();
+      }
     });
 
-    pagination.prev.addEventListener("click", function () {
-      if (state.currentPage <= 1) return;
-      state.currentPage -= 1;
-      applyState(state);
+    next.addEventListener("click", () => {
+      if (currentPage < totalPages) {
+        currentPage += 1;
+        update();
+      }
     });
 
-    pagination.next.addEventListener("click", function () {
-      state.currentPage += 1;
-      applyState(state);
-    });
-
-    applyState(state);
+    update();
   });
 })();
