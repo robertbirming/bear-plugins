@@ -1,6 +1,3 @@
-// Bearming Archive Toolkit
-// Runs on pages using `class_name: blog` or when the Blog path is set to `blog`.
-
 (function () {
   "use strict";
 
@@ -12,6 +9,10 @@
     } else {
       fn();
     }
+  }
+
+  function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   ready(function () {
@@ -29,16 +30,15 @@
     const items = Array.from(sourceList.querySelectorAll("li"));
     if (!items.length) return;
 
+    if (main.querySelector(".bearming-archive")) return;
+
     const wrapper = document.createElement("div");
     wrapper.className = "bearming-archive";
-
-    // Stable target for aria-controls
-    wrapper.id = wrapper.id || "bearming-archive";
-
+    wrapper.id = "bearming-archive";
     sourceList.parentNode.insertBefore(wrapper, sourceList);
 
-    const groups = {};
-    const years = {};
+    const groups = Object.create(null);
+    const years = Object.create(null);
 
     items.forEach((li) => {
       const time = li.querySelector("time[datetime]");
@@ -94,17 +94,14 @@
       monthLists.push(ul);
     });
 
-    // Controls
     const controls = document.createElement("div");
     controls.className = "archive-controls";
 
-    // Year dropdown
     const yearSelect = document.createElement("select");
     yearSelect.setAttribute("aria-label", "Filter by year");
     yearSelect.setAttribute("aria-controls", wrapper.id);
 
     const totalPosts = allItems.length;
-
     const allOpt = document.createElement("option");
     allOpt.value = "";
     allOpt.textContent = `All posts (${totalPosts})`;
@@ -119,7 +116,6 @@
         yearSelect.appendChild(opt);
       });
 
-    // Search
     const searchInput = document.createElement("input");
     searchInput.type = "search";
     searchInput.placeholder = "Search…";
@@ -130,7 +126,6 @@
     controls.appendChild(searchInput);
     wrapper.prepend(controls);
 
-    // Pagination
     const pagination = document.createElement("div");
     pagination.className = "pagination bearming-archive-pagination";
     pagination.innerHTML =
@@ -156,38 +151,29 @@
       const val = disabled ? "true" : "false";
       el.dataset.disabled = val;
       el.setAttribute("aria-disabled", val);
-
-      // Keep disabled anchors out of tab order
-      if (disabled) {
-        el.setAttribute("tabindex", "-1");
-      } else {
-        el.removeAttribute("tabindex");
-      }
+      if (disabled) el.setAttribute("tabindex", "-1");
+      else el.removeAttribute("tabindex");
     }
 
-    function getFilteredItems() {
+    function filterItems() {
       const year = yearSelect.value;
       const term = searchInput.value.trim().toLowerCase();
 
+      if (!year && !term) return allItems;
+
+      const re = term ? new RegExp(escapeRegExp(term), "i") : null;
+
       return allItems.filter((li) => {
         if (year && li.dataset.archiveYear !== year) return false;
-        if (!term) return true;
+        if (!re) return true;
 
         const a = li.querySelector("a");
-        const text = (a ? a.textContent : li.textContent).toLowerCase();
-        return text.includes(term);
+        const text = (a ? a.textContent : li.textContent) || "";
+        return re.test(text);
       });
     }
 
-    function update() {
-      const filtered = getFilteredItems();
-
-      totalPages = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
-      currentPage = Math.min(currentPage, totalPages);
-
-      const start = (currentPage - 1) * POSTS_PER_PAGE;
-      const visibleSet = new Set(filtered.slice(start, start + POSTS_PER_PAGE));
-
+    function renderVisibility(visibleSet) {
       allItems.forEach((li) => {
         li.style.display = visibleSet.has(li) ? "" : "none";
       });
@@ -199,6 +185,19 @@
         ul.style.display = anyVisible ? "" : "none";
         monthHeaders[i].style.display = anyVisible ? "" : "none";
       });
+    }
+
+    function update() {
+      const filtered = filterItems();
+
+      totalPages = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
+      currentPage = Math.min(currentPage, totalPages);
+
+      const start = (currentPage - 1) * POSTS_PER_PAGE;
+      const pageItems = filtered.slice(start, start + POSTS_PER_PAGE);
+      const visibleSet = new Set(pageItems);
+
+      renderVisibility(visibleSet);
 
       info.textContent = `Page ${currentPage} of ${totalPages}`;
       setDisabled(prev, currentPage === 1);
@@ -210,29 +209,25 @@
       update();
     });
 
+    let t = null;
     searchInput.addEventListener("input", () => {
       currentPage = 1;
-      update();
+      if (t) window.clearTimeout(t);
+      t = window.setTimeout(update, 60);
     });
 
     prev.addEventListener("click", (e) => {
       e.preventDefault();
       if (prev.dataset.disabled === "true") return;
-
-      if (currentPage > 1) {
-        currentPage -= 1;
-        update();
-      }
+      currentPage = Math.max(1, currentPage - 1);
+      update();
     });
 
     next.addEventListener("click", (e) => {
       e.preventDefault();
       if (next.dataset.disabled === "true") return;
-
-      if (currentPage < totalPages) {
-        currentPage += 1;
-        update();
-      }
+      currentPage = Math.min(totalPages, currentPage + 1);
+      update();
     });
 
     update();
