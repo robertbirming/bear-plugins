@@ -7,9 +7,11 @@
   const POSTS_PER_PAGE = 20;
 
   function ready(fn) {
-    document.readyState === "loading"
-      ? document.addEventListener("DOMContentLoaded", fn, { once: true })
-      : fn();
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once: true });
+    } else {
+      fn();
+    }
   }
 
   ready(function () {
@@ -29,6 +31,10 @@
 
     const wrapper = document.createElement("div");
     wrapper.className = "bearming-archive";
+
+    // Stable target for aria-controls
+    wrapper.id = wrapper.id || "bearming-archive";
+
     sourceList.parentNode.insertBefore(wrapper, sourceList);
 
     const groups = {};
@@ -42,21 +48,25 @@
       if (!dt) return;
 
       const date = new Date(dt);
-      if (isNaN(date.getTime())) return;
+      if (Number.isNaN(date.getTime())) return;
 
       const year = String(date.getFullYear());
       const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const label = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      const label = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
 
       li.dataset.archiveYear = year;
-
       years[year] = (years[year] || 0) + 1;
 
       if (!groups[monthKey]) groups[monthKey] = { label, date, items: [] };
       groups[monthKey].items.push(li);
     });
 
-    const sortedMonths = Object.keys(groups).sort((a, b) => groups[b].date - groups[a].date);
+    const sortedMonths = Object.keys(groups).sort(
+      (a, b) => groups[b].date - groups[a].date
+    );
 
     sourceList.remove();
 
@@ -84,13 +94,15 @@
       monthLists.push(ul);
     });
 
+    // Controls
     const controls = document.createElement("div");
     controls.className = "archive-controls";
-    controls.style.display = "flex";
-    controls.style.gap = "0.75rem";
-    controls.style.marginBlock = "1rem 1.25rem";
 
+    // Year dropdown
     const yearSelect = document.createElement("select");
+    yearSelect.setAttribute("aria-label", "Filter by year");
+    yearSelect.setAttribute("aria-controls", wrapper.id);
+
     const totalPosts = allItems.length;
 
     const allOpt = document.createElement("option");
@@ -107,39 +119,57 @@
         yearSelect.appendChild(opt);
       });
 
+    // Search
     const searchInput = document.createElement("input");
     searchInput.type = "search";
     searchInput.placeholder = "Search…";
-    searchInput.style.flex = "1";
+    searchInput.setAttribute("aria-label", "Search posts");
+    searchInput.setAttribute("aria-controls", wrapper.id);
 
     controls.appendChild(yearSelect);
     controls.appendChild(searchInput);
     wrapper.prepend(controls);
 
+    // Pagination
     const pagination = document.createElement("div");
-    pagination.className = "pagination";
+    pagination.className = "pagination bearming-archive-pagination";
     pagination.innerHTML =
-      '<a id="prev" role="button">Previous</a><span id="info"></span><a id="next" role="button">Next</a>';
+      '<a id="prevPage" role="button" aria-disabled="false" data-disabled="false">Previous</a>' +
+      '<span id="pageInfo"></span>' +
+      '<a id="nextPage" role="button" aria-disabled="false" data-disabled="false">Next</a>';
 
     wrapper.appendChild(pagination);
 
-    const prev = pagination.querySelector("#prev");
-    const next = pagination.querySelector("#next");
-    const info = pagination.querySelector("#info");
+    const prev = pagination.querySelector("#prevPage");
+    const next = pagination.querySelector("#nextPage");
+    const info = pagination.querySelector("#pageInfo");
+
+    if (!prev || !next || !info) return;
+
+    prev.setAttribute("aria-controls", wrapper.id);
+    next.setAttribute("aria-controls", wrapper.id);
 
     let currentPage = 1;
     let totalPages = 1;
 
     function setDisabled(el, disabled) {
-      el.style.opacity = disabled ? "0.5" : "1";
-      el.style.pointerEvents = disabled ? "none" : "";
+      const val = disabled ? "true" : "false";
+      el.dataset.disabled = val;
+      el.setAttribute("aria-disabled", val);
+
+      // Keep disabled anchors out of tab order
+      if (disabled) {
+        el.setAttribute("tabindex", "-1");
+      } else {
+        el.removeAttribute("tabindex");
+      }
     }
 
-    function update() {
+    function getFilteredItems() {
       const year = yearSelect.value;
       const term = searchInput.value.trim().toLowerCase();
 
-      const filtered = allItems.filter((li) => {
+      return allItems.filter((li) => {
         if (year && li.dataset.archiveYear !== year) return false;
         if (!term) return true;
 
@@ -147,21 +177,27 @@
         const text = (a ? a.textContent : li.textContent).toLowerCase();
         return text.includes(term);
       });
+    }
+
+    function update() {
+      const filtered = getFilteredItems();
 
       totalPages = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
       currentPage = Math.min(currentPage, totalPages);
 
       const start = (currentPage - 1) * POSTS_PER_PAGE;
-      const pageSet = new Set(filtered.slice(start, start + POSTS_PER_PAGE));
+      const visibleSet = new Set(filtered.slice(start, start + POSTS_PER_PAGE));
 
       allItems.forEach((li) => {
-        li.style.display = pageSet.has(li) ? "" : "none";
+        li.style.display = visibleSet.has(li) ? "" : "none";
       });
 
       monthLists.forEach((ul, i) => {
-        const visible = Array.from(ul.children).some((li) => li.style.display !== "none");
-        ul.style.display = visible ? "" : "none";
-        monthHeaders[i].style.display = visible ? "" : "none";
+        const anyVisible = Array.from(ul.children).some(
+          (li) => li.style.display !== "none"
+        );
+        ul.style.display = anyVisible ? "" : "none";
+        monthHeaders[i].style.display = anyVisible ? "" : "none";
       });
 
       info.textContent = `Page ${currentPage} of ${totalPages}`;
@@ -179,14 +215,20 @@
       update();
     });
 
-    prev.addEventListener("click", () => {
+    prev.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (prev.dataset.disabled === "true") return;
+
       if (currentPage > 1) {
         currentPage -= 1;
         update();
       }
     });
 
-    next.addEventListener("click", () => {
+    next.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (next.dataset.disabled === "true") return;
+
       if (currentPage < totalPages) {
         currentPage += 1;
         update();
