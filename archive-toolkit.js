@@ -98,7 +98,7 @@
 
     sortedMonths.forEach(function (key) {
       const h3 = document.createElement("h3");
-      h3.className = "archive-h3";
+      h3.className = "bearming-archive-h3";
       h3.textContent = groups[key].label;
 
       const ul = document.createElement("ul");
@@ -118,7 +118,7 @@
 
     // Controls
     const controls = document.createElement("div");
-    controls.className = "archive-controls";
+    controls.className = "bearming-archive-controls";
 
     const yearSelect = document.createElement("select");
     yearSelect.setAttribute("aria-label", "Filter posts by year");
