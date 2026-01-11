@@ -2,7 +2,7 @@
 
 Small JavaScript helpers for Bear Blog.
 
-These scripts are designed to be dropped in as-is and blend naturally with Bear.
+These scripts are designed to be dropped in and blend naturally with Bear.
 
 ---
 
@@ -13,9 +13,10 @@ These scripts are designed to be dropped in as-is and blend naturally with Bear.
 Utilities for the Bear post archive listing. Inspired by the great work of [Herman](https://github.com/HermanMartinus/bear-plugins) and
 [Mighil’s post sorting script](https://mighil.com/script-to-sort-posts-by-month-on-bear-blog).
 
-<summary><a href="archive-toolkit.js">Code</a></summary>
+<a href="archive-toolkit.js">Code</a>
 
-Embed;
+Embed:
+
 ```html
 <script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/archive-toolkit.js"></script>
 ```
@@ -27,6 +28,7 @@ Adds a simple lightbox for the [Bearming theme](https://robertbirming.com/bearmi
 <a href="gallery-lightbox.js">Code</a>
 
 Embed:
+
 ```html
 <script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/gallery-lightbox.js"></script>
 ```
@@ -40,8 +42,9 @@ A small notes panel inside the Bear dashboard, useful for reminders, ideas, or t
 <a href="dashboard-notes.js">Code</a>
 
 Embed:
+
 ```html
-<script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins@v1.0.0/dashboard-notes.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/dashboard-notes.js"></script>
 ```
 
 These scripts are provided as-is. Feel free to use or adapt them.
