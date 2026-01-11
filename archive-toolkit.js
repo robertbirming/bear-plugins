@@ -1,15 +1,16 @@
 (function () {
   "use strict";
 
-  // Archive tweaks: month grouping + year filter + search + pagination + shareable URL params.
-  // URL params:
-  //   y = year (e.g. ?y=2024)
-  //   s = search term (e.g. ?s=bear)
-  //   p = page number (e.g. ?p=2)
+  // Bear archive tweaks
+  // - Groups posts by month
+  // - Adds year filter + search
+  // - Paginates results
+  // - Syncs state to URL (?y=2024&s=bear&p=2)
 
   const PARAM_YEAR = "y";
   const PARAM_SEARCH = "s";
   const PARAM_PAGE = "p";
+
   const POSTS_PER_PAGE = 25;
   const SEARCH_DEBOUNCE_MS = 60;
 
@@ -42,20 +43,19 @@
     const main = document.querySelector("main");
     if (!main) return;
 
-    // Support both normal and embedded lists.
     const sourceList =
       main.querySelector("ul.embedded.blog-posts") ||
       main.querySelector("ul.blog-posts");
 
     if (!sourceList) return;
 
-    // Avoid double-running if footer directive injected twice.
+    // Guard against double injection.
     if (main.querySelector(".bearming-archive")) return;
 
     const items = Array.from(sourceList.querySelectorAll("li"));
     if (!items.length) return;
 
-    // Build month groups + year counts
+    // Group items by month, track year counts, and tag each item with its year.
     const groups = Object.create(null);
     const years = Object.create(null);
 
@@ -84,7 +84,7 @@
       return groups[b].date - groups[a].date;
     });
 
-    // Replace the original list with grouped months
+    // Replace original list with grouped layout.
     sourceList.remove();
 
     const wrapper = document.createElement("div");
@@ -151,7 +151,7 @@
     controls.appendChild(searchInput);
     wrapper.prepend(controls);
 
-    // Pagination
+    // Pagination UI
     const pagination = document.createElement("div");
     pagination.className = "pagination bearming-archive-pagination";
     pagination.innerHTML =
@@ -182,6 +182,7 @@
     function getFiltered() {
       const year = yearSelect.value;
       const term = searchInput.value.trim();
+
       const hasYear = !!year;
       const hasTerm = term.length > 0;
 
@@ -235,6 +236,7 @@
 
       const start = (currentPage - 1) * POSTS_PER_PAGE;
       const pageItems = filtered.slice(start, start + POSTS_PER_PAGE);
+
       renderVisibility(new Set(pageItems));
 
       info.textContent = "Page " + currentPage + " of " + totalPages;
@@ -277,7 +279,7 @@
     next.addEventListener("click", function (e) {
       e.preventDefault();
       if (next.dataset.disabled === "true") return;
-      currentPage = currentPage + 1;
+      currentPage += 1;
       update();
     });
 
