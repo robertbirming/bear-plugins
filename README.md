@@ -33,6 +33,18 @@ Embed:
 <script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/gallery-lightbox.js"></script>
 ```
 
+### Copy button
+
+Adds a simple code copy button for the [Bearming theme](https://robertbirming.com/bearming/).
+
+<a href="copy-button.js">Code</a>
+
+Embed:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/copy-button.js"></script>
+```
+
 ## Dashboard
 
 ### Dashboard notes
