@@ -21,6 +21,20 @@ Embed:
 <script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/archive-toolkit.js"></script>
 ```
 
+### Date formatter
+
+A small utility for formatting `<time datetime="...">` elements on Bear sites.  
+Keeps dates consistent across the site, and works nicely with the Bearming archive toolkit by showing day-only dates in the archive list.
+
+<a href="date-format.js">Code</a>
+
+Embed:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/date-format.js"></script>
+```
+
+
 ### Gallery lightbox
 
 Adds a simple lightbox for the [Bearming theme](https://robertbirming.com/bearming/).
