@@ -1,20 +1,27 @@
 (function () {
   "use strict";
 
-  // Bear archive tweaks
-  // - Groups posts by month
-  // - Adds year filter + search
-  // - Paginates results
-  // - Syncs state to URL (?y=2024&s=bear&p=2)
+  /*
+   * Bearming archive toolkit
+   * Version 1.0.0 | 2026-01-23
+   * robertbirming.com
+   *
+   * Features:
+   * - Groups posts by month
+   * - Year filter + search
+   * - Pagination
+   * - URL state: ?y=2024&s=bear&p=2
+   * - Moves tag filter block (#tags) to the bottom when present
+   */
 
   const PARAM_YEAR = "y";
   const PARAM_SEARCH = "s";
   const PARAM_PAGE = "p";
 
   const POSTS_PER_PAGE = 25;
-  const SEARCH_DEBOUNCE_MS = 60;
+  const SEARCH_DEBOUNCE_MS = 140;
 
-  function ready(fn) {
+  function onReady(fn) {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", fn, { once: true });
     } else {
@@ -24,6 +31,13 @@
 
   function escapeRegExp(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // Safari-safe parsing for YYYY-MM-DD (avoid timezone drift)
+  function parseDatetime(dt) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dt);
+    if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    return new Date(dt);
   }
 
   function readParams() {
@@ -36,8 +50,11 @@
     history.replaceState(null, "", url.toString());
   }
 
-  ready(function () {
-    // Only run on the /blog page.
+  function clamp(n, min, max) {
+    return Math.min(max, Math.max(min, n));
+  }
+
+  onReady(function () {
     if (!document.body.classList.contains("blog")) return;
 
     const main = document.querySelector("main");
@@ -49,72 +66,61 @@
 
     if (!sourceList) return;
 
-    // Guard against double injection.
+    // Prevent double injection
     if (main.querySelector(".bearming-archive")) return;
 
     const items = Array.from(sourceList.querySelectorAll("li"));
     if (!items.length) return;
 
-    // Group items by month, track year counts, and tag each item with its year.
+    // Capture tag filter block (only exists on /blog/?q=...)
+    const tagsEl = main.querySelector("#tags");
+    const tagsBlock = tagsEl ? tagsEl.closest("small") : null;
+
     const groups = Object.create(null);
     const years = Object.create(null);
+    const allItems = [];
 
-    items.forEach(function (li) {
+    for (let i = 0; i < items.length; i++) {
+      const li = items[i];
       const time = li.querySelector("time[datetime]");
-      if (!time) return;
+      if (!time) continue;
 
       const dt = time.getAttribute("datetime");
-      if (!dt) return;
+      if (!dt) continue;
 
-      const date = new Date(dt);
-      if (Number.isNaN(date.getTime())) return;
+      const date = parseDatetime(dt);
+      if (Number.isNaN(date.getTime())) continue;
 
-      const year = String(date.getFullYear());
-      const monthKey = year + "-" + String(date.getMonth() + 1).padStart(2, "0");
-      const label = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      const year = String(date.getUTCFullYear ? date.getUTCFullYear() : date.getFullYear());
+      const month = String((date.getUTCMonth ? date.getUTCMonth() : date.getMonth()) + 1).padStart(2, "0");
+      const monthKey = year + "-" + month;
+
+      const label = date.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
 
       li.dataset.archiveYear = year;
       years[year] = (years[year] || 0) + 1;
 
-      if (!groups[monthKey]) groups[monthKey] = { label: label, date: date, items: [] };
+      if (!groups[monthKey]) {
+        groups[monthKey] = { label: label, date: date, items: [] };
+      }
       groups[monthKey].items.push(li);
-    });
+    }
 
     const sortedMonths = Object.keys(groups).sort(function (a, b) {
       return groups[b].date - groups[a].date;
     });
 
-    // Replace original list with grouped layout.
+    // Remove original list
     sourceList.remove();
 
     const wrapper = document.createElement("div");
     wrapper.className = "bearming-archive";
     wrapper.id = "bearming-archive";
     main.appendChild(wrapper);
-
-    const monthLists = [];
-    const monthHeaders = [];
-    const allItems = [];
-
-    sortedMonths.forEach(function (key) {
-      const h3 = document.createElement("h3");
-      h3.className = "bearming-archive-h3";
-      h3.textContent = groups[key].label;
-
-      const ul = document.createElement("ul");
-      ul.className = "blog-posts";
-
-      groups[key].items.forEach(function (li) {
-        ul.appendChild(li);
-        allItems.push(li);
-      });
-
-      wrapper.appendChild(h3);
-      wrapper.appendChild(ul);
-
-      monthHeaders.push(h3);
-      monthLists.push(ul);
-    });
 
     // Controls
     const controls = document.createElement("div");
@@ -124,10 +130,9 @@
     yearSelect.setAttribute("aria-label", "Filter posts by year");
     yearSelect.setAttribute("aria-controls", wrapper.id);
 
-    const totalPosts = allItems.length;
     const optAll = document.createElement("option");
     optAll.value = "";
-    optAll.textContent = "All posts (" + totalPosts + ")";
+    optAll.textContent = "All posts (" + items.length + ")";
     yearSelect.appendChild(optAll);
 
     Object.keys(years)
@@ -149,69 +154,126 @@
 
     controls.appendChild(yearSelect);
     controls.appendChild(searchInput);
-    wrapper.prepend(controls);
+    wrapper.appendChild(controls);
 
-    // Pagination UI
-    const pagination = document.createElement("div");
-    pagination.className = "pagination bearming-archive-pagination";
-    pagination.innerHTML =
-      '<a id="prevPage" role="button" aria-disabled="false" data-disabled="false">Previous</a>' +
-      '<span id="pageInfo"></span>' +
-      '<a id="nextPage" role="button" aria-disabled="false" data-disabled="false">Next</a>';
-    wrapper.appendChild(pagination);
+    // Grouped months
+    const monthHeaders = [];
+    const monthLists = [];
 
-    const prev = pagination.querySelector("#prevPage");
-    const next = pagination.querySelector("#nextPage");
-    const info = pagination.querySelector("#pageInfo");
-    if (!prev || !next || !info) return;
+    for (let i = 0; i < sortedMonths.length; i++) {
+      const key = sortedMonths[i];
+      const g = groups[key];
 
-    prev.setAttribute("aria-controls", wrapper.id);
-    next.setAttribute("aria-controls", wrapper.id);
+      const h3 = document.createElement("h3");
+      h3.className = "bearming-archive-h3";
+      h3.textContent = g.label;
 
-    function setDisabled(el, disabled) {
-      const val = disabled ? "true" : "false";
-      el.dataset.disabled = val;
-      el.setAttribute("aria-disabled", val);
-      if (disabled) el.setAttribute("tabindex", "-1");
-      else el.removeAttribute("tabindex");
+      const ul = document.createElement("ul");
+      ul.className = "blog-posts";
+
+      for (let j = 0; j < g.items.length; j++) {
+        const li = g.items[j];
+        ul.appendChild(li);
+        allItems.push(li);
+      }
+
+      wrapper.appendChild(h3);
+      wrapper.appendChild(ul);
+
+      monthHeaders.push(h3);
+      monthLists.push(ul);
     }
 
-    // State (synced with URL)
+    // Pagination
+    const pagination = document.createElement("div");
+    pagination.className = "pagination bearming-archive-pagination";
+
+    const prevBtn = document.createElement("button");
+    prevBtn.type = "button";
+    prevBtn.id = "prevPage";
+    prevBtn.textContent = "Previous";
+    prevBtn.setAttribute("aria-controls", wrapper.id);
+
+    const info = document.createElement("span");
+    info.id = "pageInfo";
+
+    const nextBtn = document.createElement("button");
+    nextBtn.type = "button";
+    nextBtn.id = "nextPage";
+    nextBtn.textContent = "Next";
+    nextBtn.setAttribute("aria-controls", wrapper.id);
+
+    pagination.appendChild(prevBtn);
+    pagination.appendChild(info);
+    pagination.appendChild(nextBtn);
+    wrapper.appendChild(pagination);
+
+    // Move tags block to the bottom (only when it exists)
+    if (tagsBlock) {
+      wrapper.appendChild(tagsBlock);
+    }
+
+    function setDisabled(btn, disabled) {
+      btn.disabled = !!disabled;
+      btn.setAttribute("aria-disabled", disabled ? "true" : "false");
+    }
+
     let currentPage = 1;
+    let debounceId = 0;
 
     function getFiltered() {
       const year = yearSelect.value;
       const term = searchInput.value.trim();
 
-      const hasYear = !!year;
+      const hasYear = year !== "";
       const hasTerm = term.length > 0;
-
       if (!hasYear && !hasTerm) return allItems;
 
       const re = hasTerm ? new RegExp(escapeRegExp(term), "i") : null;
 
-      return allItems.filter(function (li) {
-        if (hasYear && li.dataset.archiveYear !== year) return false;
-        if (!re) return true;
+      const out = [];
+      for (let i = 0; i < allItems.length; i++) {
+        const li = allItems[i];
 
-        const a = li.querySelector("a");
-        const text = (a ? a.textContent : li.textContent) || "";
-        return re.test(text);
-      });
+        if (hasYear && li.dataset.archiveYear !== year) continue;
+
+        if (re) {
+          const a = li.querySelector("a");
+          const text = (a ? a.textContent : li.textContent) || "";
+          if (!re.test(text)) continue;
+        }
+
+        out.push(li);
+      }
+      return out;
     }
 
-    function renderVisibility(visibleSet) {
-      allItems.forEach(function (li) {
-        li.style.display = visibleSet.has(li) ? "" : "none";
-      });
+    function renderPageItems(pageItems) {
+      // Hide everything first
+      for (let i = 0; i < allItems.length; i++) {
+        allItems[i].hidden = true;
+      }
 
-      monthLists.forEach(function (ul, i) {
-        const anyVisible = Array.from(ul.children).some(function (li) {
-          return li.style.display !== "none";
-        });
-        ul.style.display = anyVisible ? "" : "none";
-        monthHeaders[i].style.display = anyVisible ? "" : "none";
-      });
+      // Show current page items
+      for (let i = 0; i < pageItems.length; i++) {
+        pageItems[i].hidden = false;
+      }
+
+      // Hide empty months
+      for (let i = 0; i < monthLists.length; i++) {
+        const ul = monthLists[i];
+        let anyVisible = false;
+
+        for (let j = 0; j < ul.children.length; j++) {
+          if (!ul.children[j].hidden) {
+            anyVisible = true;
+            break;
+          }
+        }
+
+        ul.hidden = !anyVisible;
+        monthHeaders[i].hidden = !anyVisible;
+      }
     }
 
     function syncUrl() {
@@ -219,6 +281,7 @@
       const term = searchInput.value.trim();
 
       const p = readParams();
+
       year ? p.set(PARAM_YEAR, year) : p.delete(PARAM_YEAR);
       term ? p.set(PARAM_SEARCH, term) : p.delete(PARAM_SEARCH);
 
@@ -232,18 +295,19 @@
       const filtered = getFiltered();
 
       const totalPages = Math.max(1, Math.ceil(filtered.length / POSTS_PER_PAGE));
-      currentPage = Math.min(Math.max(1, currentPage), totalPages);
+      currentPage = clamp(currentPage, 1, totalPages);
 
       const start = (currentPage - 1) * POSTS_PER_PAGE;
       const pageItems = filtered.slice(start, start + POSTS_PER_PAGE);
 
-      renderVisibility(new Set(pageItems));
+      renderPageItems(pageItems);
 
       info.textContent = "Page " + currentPage + " of " + totalPages;
-      setDisabled(prev, currentPage === 1);
-      setDisabled(next, currentPage === totalPages);
 
-      pagination.style.display = filtered.length > POSTS_PER_PAGE ? "" : "none";
+      setDisabled(prevBtn, currentPage === 1);
+      setDisabled(nextBtn, currentPage === totalPages);
+
+      pagination.hidden = filtered.length <= POSTS_PER_PAGE;
 
       syncUrl();
     }
@@ -256,29 +320,25 @@
     const page0 = parseInt(p0.get(PARAM_PAGE) || "1", 10);
     currentPage = Number.isFinite(page0) && page0 > 0 ? page0 : 1;
 
-    // Events
     yearSelect.addEventListener("change", function () {
       currentPage = 1;
       update();
     });
 
-    let t = null;
     searchInput.addEventListener("input", function () {
       currentPage = 1;
-      if (t) window.clearTimeout(t);
-      t = window.setTimeout(update, SEARCH_DEBOUNCE_MS);
+      if (debounceId) window.clearTimeout(debounceId);
+      debounceId = window.setTimeout(update, SEARCH_DEBOUNCE_MS);
     });
 
-    prev.addEventListener("click", function (e) {
-      e.preventDefault();
-      if (prev.dataset.disabled === "true") return;
-      currentPage = Math.max(1, currentPage - 1);
+    prevBtn.addEventListener("click", function () {
+      if (prevBtn.disabled) return;
+      currentPage -= 1;
       update();
     });
 
-    next.addEventListener("click", function (e) {
-      e.preventDefault();
-      if (next.dataset.disabled === "true") return;
+    nextBtn.addEventListener("click", function () {
+      if (nextBtn.disabled) return;
       currentPage += 1;
       update();
     });
