@@ -1,6 +1,6 @@
 # Bear plugins
 
-Small JavaScript helpers for Bear Blog.
+Small JavaScript extensions for Bear Blog.
 
 These scripts are designed to be dropped in and blend naturally with Bear.
 
