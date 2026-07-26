@@ -1,12 +1,34 @@
-# Bear plugins
+# Bear Blog plugins
 
-Small JavaScript extensions for Bear Blog.
+Small JavaScript extensions for [Bear Blog](https://bearblog.dev), designed to be dropped in and blend naturally with Bear.
 
-These scripts are designed to be dropped in and blend naturally with Bear.
+To use them, copy the JS into a `<script></script>` tag. Add **Blog plugins** to the footer directive of your blog, or embed them in a post or page. Add **Dashboard plugins** to the [Customise dashboard](https://bearblog.dev/dashboard/customise/) page, under "Dashboard footer content".
 
 ---
 
 ## Blog
+
+### Blog archive
+
+Utilities for the Bear post archive listing. Inspired by the great work of [Herman](https://github.com/HermanMartinus/bear-plugins) and
+[Mighil’s post sorting script](https://mighil.com/script-to-sort-posts-by-month-on-bear-blog).
+
+<a href="blog-archive.js">Code</a>
+
+## Dashboard
+
+### Dashboard notes
+
+A small notes panel inside the Bear dashboard, useful for reminders, ideas, or things you don’t want to forget.
+
+<a href="dashboard-notes.js">Code</a>
+
+These scripts are provided as-is. Feel free to use or adapt them.
+
+Part of my ongoing work with Bear and the [Bearming theme](https://robertbirming.com/bearming/).
+
+<!--
+## Bearming
 
 ### Archive toolkit
 
@@ -58,21 +80,4 @@ Embed:
 ```html
 <script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/copy-button.js"></script>
 ```
-
-## Dashboard
-
-### Dashboard notes
-
-A small notes panel inside the Bear dashboard, useful for reminders, ideas, or things you don’t want to forget.
-
-<a href="dashboard-notes.js">Code</a>
-
-Embed:
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/robertbirming/bear-plugins/dashboard-notes.js"></script>
-```
-
-These scripts are provided as-is. Feel free to use or adapt them.
-
-Part of my ongoing work with Bear and the [Bearming theme](https://robertbirming.com/bearming/).
+-->
