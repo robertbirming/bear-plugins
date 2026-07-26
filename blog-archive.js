@@ -49,13 +49,6 @@
     if (legacySearch) legacySearch.remove();
 
     const tagsBlock = main.querySelector(".tags")?.closest("small");
-    const tagsDiv = tagsBlock?.querySelector(".tags");
-    if (tagsDiv && !tagsDiv.querySelector(".blog-archive-tags-label")) {
-      const tagsLabel = document.createElement("span");
-      tagsLabel.className = "blog-archive-tags-label";
-      tagsLabel.textContent = "Tags:";
-      tagsDiv.insertBefore(tagsLabel, tagsDiv.firstChild);
-    }
 
     const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 
@@ -318,25 +311,33 @@
       update();
     });
 
-    searchInput.addEventListener("input", () => {
+    let lastHandledValue = null;
+
+    const runSearchUpdate = () => {
+      const value = searchInput.value;
+      if (value === lastHandledValue) return;
+      lastHandledValue = value;
       currentPage = 1;
       clearPendingSearch();
+      update();
+    };
+
+    searchInput.addEventListener("input", () => {
       if (!searchInput.value.trim()) {
-        update();
+        runSearchUpdate();
         return;
       }
+      currentPage = 1;
+      clearPendingSearch();
       // Debounce while typing to avoid re-filtering on every keystroke
       debounceId = window.setTimeout(() => {
         debounceId = null;
+        lastHandledValue = searchInput.value;
         update();
       }, SEARCH_DEBOUNCE_MS);
     });
 
-    searchInput.addEventListener("search", () => {
-      currentPage = 1;
-      clearPendingSearch();
-      update();
-    });
+    searchInput.addEventListener("search", runSearchUpdate);
 
     prevBtn.addEventListener("click", () => {
       if (prevBtn.disabled) return;
