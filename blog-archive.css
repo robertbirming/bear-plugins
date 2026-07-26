@@ -69,6 +69,15 @@
   font: inherit;
   color: var(--link-color);
   cursor: pointer;
+  text-decoration-thickness: 0;
+  transition: text-decoration-thickness 0.15s ease;
+}
+
+#blog-archive-prev:hover,
+#blog-archive-next:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
 }
 
 #blog-archive-prev::before {
