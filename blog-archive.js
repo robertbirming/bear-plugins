@@ -49,6 +49,13 @@
     if (legacySearch) legacySearch.remove();
 
     const tagsBlock = main.querySelector(".tags")?.closest("small");
+    const tagsDiv = tagsBlock?.querySelector(".tags");
+    if (tagsDiv && !tagsDiv.querySelector(".blog-archive-tags-label")) {
+      const tagsLabel = document.createElement("span");
+      tagsLabel.className = "blog-archive-tags-label";
+      tagsLabel.textContent = "Tags:";
+      tagsDiv.insertBefore(tagsLabel, tagsDiv.firstChild);
+    }
 
     const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 
@@ -59,6 +66,7 @@
 
     const readParams = () => new URLSearchParams(location.search);
 
+    // Uses replaceState (not pushState) so filtering/searching doesn't clutter browser history
     const writeParams = (p) => {
       const url = new URL(location.href);
       url.pathname = url.pathname.endsWith("/") ? url.pathname : url.pathname + "/";
@@ -317,6 +325,7 @@
         update();
         return;
       }
+      // Debounce while typing to avoid re-filtering on every keystroke
       debounceId = window.setTimeout(() => {
         debounceId = null;
         update();
