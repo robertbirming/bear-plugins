@@ -1,0 +1,106 @@
+/* Blog archive */
+
+#blog-archive {
+  margin-block: 1.5rem 0;
+}
+
+#blog-archive p {
+  margin-block: 1.2rem;
+}
+
+#blog-archive h3 {
+  margin-block-start: 1.8rem;
+}
+
+#blog-archive-year,
+#blog-archive-search {
+  font: inherit;
+  color: var(--text-color);
+  background-color: var(--code-background-color);
+  border: 1px solid color-mix(in srgb, var(--text-color), transparent 75%);
+  border-radius: 2px;
+  padding-block: 0.5em;
+  padding-inline: 0.7em;
+  appearance: none;
+}
+
+#blog-archive-year {
+  padding-inline-end: 2em;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-color) 50%),
+    linear-gradient(135deg, var(--text-color) 50%, transparent 50%);
+  background-position: calc(100% - 1.1em) center, calc(100% - 0.8em) center;
+  background-size: 0.3em 0.3em, 0.3em 0.3em;
+  background-repeat: no-repeat;
+}
+
+#blog-archive-search {
+  margin-inline-start: 0.6em;
+  min-width: 11rem;
+}
+
+#blog-archive-year:focus-visible,
+#blog-archive-search:focus-visible {
+  outline: 2px solid var(--link-color);
+  outline-offset: 1px;
+}
+
+#blog-archive-empty {
+  color: color-mix(in srgb, var(--text-color), transparent 40%);
+}
+
+#blog-archive-pagination {
+  margin-block-end: 0 !important;
+  padding-block-start: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.6em;
+}
+
+#blog-archive-pagination[hidden] {
+  display: none;
+}
+
+#blog-archive-prev,
+#blog-archive-next {
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--link-color);
+  cursor: pointer;
+}
+
+#blog-archive-prev::before {
+  content: "\00AB ";
+}
+
+#blog-archive-next::after {
+  content: " \00BB";
+}
+
+#blog-archive-prev:disabled,
+#blog-archive-next:disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+#blog-archive-info {
+  color: color-mix(in srgb, var(--text-color), transparent 40%);
+}
+
+#blog-archive small .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6em;
+}
+
+#blog-archive small .tags a {
+  color: color-mix(in srgb, var(--text-color), transparent 40%);
+  text-decoration: none;
+}
+
+#blog-archive small .tags a:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+}
