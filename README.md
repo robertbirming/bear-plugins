@@ -4,6 +4,8 @@ Small JavaScript extensions for [Bear Blog](https://bearblog.dev), designed to b
 
 To use them, copy the JS into a `<script></script>` tag. Add **Blog plugins** to the footer directive of your blog, or embed them in a post or page. Add **Dashboard plugins** to the [Customise dashboard](https://bearblog.dev/dashboard/customise/) page, under "Dashboard footer content".
 
+The optional CSS styles use Bear's default token names.
+
 ---
 
 ## Blog
@@ -13,7 +15,7 @@ To use them, copy the JS into a `<script></script>` tag. Add **Blog plugins** to
 Utilities for the Bear post archive listing. Inspired by the great work of [Herman](https://github.com/HermanMartinus/bear-plugins) and
 [Mighil’s post sorting script](https://mighil.com/script-to-sort-posts-by-month-on-bear-blog).
 
-<a href="blog-archive.js">Code</a>
+<a href="blog-archive.js">Code</a> | <a href="blog-archive.css">Style</a>
 
 ## Dashboard
 
