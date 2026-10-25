@@ -14,6 +14,18 @@ Opens post and page images in a full-screen viewer. Photos in the same paragraph
 
 [Code](/lightbox.js)
 
+### Status.lol
+
+Shows your latest [status.lol](https://status.lol) status as one quiet line, with a link to the status and how long ago it was posted. Statuses older than 14 days are hidden. Add this where the status should appear, followed by the script:
+
+```html
+<p class="status-lol" data-address="your-username" hidden></p>
+```
+
+Change the limit with `data-max-days`, for example `data-max-days="7"`.
+
+[Code](/status-lol.js)
+
 ---
 
 These scripts are provided as-is. Feel free to use or adapt them.
