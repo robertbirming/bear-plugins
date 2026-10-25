@@ -2,7 +2,7 @@
 
 Small JavaScript extensions for [Bear Blog](https://bearblog.dev), designed to be dropped in and blend naturally with Bear.
 
-They are separated into **Blog** and **Dashboard** tools to distinguish if they are used on the rendering of the blog, or if they are an extension to the Bear editor and dashboard.
+<!--They are separated into **Blog** and **Dashboard** tools to distinguish if they are used on the rendering of the blog, or if they are an extension to the Bear editor and dashboard.-->
 
 These extensions can be used by copying and pasting the JS into a `<script></script>` tag in the footer directive of your blog.
 
